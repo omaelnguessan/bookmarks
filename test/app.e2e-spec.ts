@@ -4,6 +4,7 @@ import * as pactum from 'pactum';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { AppModule } from '../src/app.module';
 import { AuthDto } from 'src/auth/dto';
+import { EditUserDto } from 'src/user/dto';
 
 describe('App e2e', () => {
   let app: INestApplication;
@@ -37,7 +38,37 @@ describe('App e2e', () => {
       password: '123',
     };
 
+    let url: string;
     describe('Signup', () => {
+      url = '/auth/signup';
+      it('Should throw if email is empty', () => {
+        return pactum
+          .spec()
+          .post('/auth/signup')
+          .withBody({
+            password: dto.password,
+          })
+          .expectStatus(400);
+      });
+
+      it('Should throw if password is empty', () => {
+        return pactum
+          .spec()
+          .post('/auth/signup')
+          .withBody({
+            email: dto.email,
+          })
+          .expectStatus(400);
+      });
+
+      it('Should throw if body is empty', () => {
+        return pactum
+          .spec()
+          .post('/auth/signup')
+          .withBody({})
+          .expectStatus(400);
+      });
+
       it('Should sign up', () => {
         return pactum
           .spec()
@@ -48,12 +79,43 @@ describe('App e2e', () => {
     });
 
     describe('Signin', () => {
+      url = '/auth/signin';
+
+      it('Should throw if email is empty', () => {
+        return pactum
+          .spec()
+          .post('/auth/signin')
+          .withBody({
+            password: dto.password,
+          })
+          .expectStatus(400);
+      });
+
+      it('Should throw if password is empty', () => {
+        return pactum
+          .spec()
+          .post('/auth/signin')
+          .withBody({
+            email: dto.email,
+          })
+          .expectStatus(400);
+      });
+
+      it('Should throw if body is empty', () => {
+        return pactum
+          .spec()
+          .post('/auth/signin')
+          .withBody({})
+          .expectStatus(400);
+      });
+
       it('Should sign in', () => {
         return pactum
           .spec()
           .post('/auth/signin')
           .withBody(dto)
-          .expectStatus(200);
+          .expectStatus(200)
+          .stores('userAt', 'access_token');
       });
     });
   });
@@ -63,11 +125,35 @@ describe('App e2e', () => {
    */
   describe('User', () => {
     describe('Get current user', () => {
-      it.todo('Should Get current user');
+      it('Should throw if empty is headers', () => {
+        return pactum.spec().withHeaders({}).get('/users/me').expectStatus(401);
+      });
+
+      it('Should Get current user', () => {
+        return pactum
+          .spec()
+          .withHeaders({ Authorization: 'bearer $S{userAt}' })
+          .get('/users/me')
+          .expectStatus(200);
+      });
     });
 
     describe('Edit user', () => {
-      it.todo('Should Edit user');
+      it('Should Edit user', () => {
+        const dto: EditUserDto = {
+          email: 'email@gmail.com',
+          firstName: 'madara',
+          lastName: 'uchiwa',
+        };
+        return pactum
+          .spec()
+          .withHeaders({ Authorization: 'bearer $S{userAt}' })
+          .patch('/users')
+          .withBody(dto)
+          .expectStatus(200)
+          .expectBodyContains(dto.email)
+          .expectBodyContains(dto.firstName);
+      });
     });
   });
 
@@ -87,11 +173,11 @@ describe('App e2e', () => {
       it.todo('Should Get Bookmark by id');
     });
 
-    describe('Edit Bookmark', () => {
+    describe('Edit Bookmark by id', () => {
       it.todo('Should Edit Bookmark');
     });
 
-    describe('Delete Bookmark', () => {
+    describe('Delete Bookmark by id', () => {
       it.todo('Should Delete Bookmark');
     });
   });
